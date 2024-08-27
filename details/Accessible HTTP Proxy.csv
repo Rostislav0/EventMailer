@@ -1,0 +1,3 @@
+﻿timestamp;severity;ip;protocol;port;hostname;tag;sector;asn;geo;region;city;naics;hostname_source;http;http_code;http_reason;content_type;connection;proxy_authenticate;via;server;content_length;transfer_encoding;http_date
+"2024-08-22 03:33:10";info;79.98.51.234;tcp;3128;;http-get-proxy-closed;;21305;BY;"GOMEL'SKAJA OBLAST'";GOMEL;;;HTTP/1.1;407;"Proxy Authentication Required";text/html;;"Basic realm=""SmallProxy Authentication Required""";;;710;;
+"2024-08-22 03:33:12";info;79.98.51.234;tcp;3128;;http-connect-proxy-closed;;21305;BY;"GOMEL'SKAJA OBLAST'";GOMEL;;;HTTP/1.1;407;"Proxy Authentication Required";text/html;;"Basic realm=""SmallProxy Authentication Required""";;;710;;

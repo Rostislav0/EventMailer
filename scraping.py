@@ -1,6 +1,5 @@
 import copy
 import json
-import sys
 import zipfile
 from get_user_data import division_data_by_aid
 from output_results import get_result_files
