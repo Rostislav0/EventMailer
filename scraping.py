@@ -5,7 +5,7 @@ from get_user_data import division_data_by_aid
 from output_results import get_result_files
 import ipaddress
 
-print('')
+
 def unzipping_file(zip_file):
     with zipfile.ZipFile(zip_file, 'r') as zip_ref:
         zip_ref.extractall(f'./{zip_file.replace('.zip', '')}')
