@@ -34,22 +34,22 @@ def division_data_by_aid(ip_addresses):
         if id in email_and_ips.keys():
             email_and_ips[id]['subnets'].update({ip})
             if email:
-                email_and_ips[id]['emails'].extend(re.split(r'[ ,]+', email.strip()) if email else [])
+                email_and_ips[id]['emails'].update(re.split(r'[ ,]+', email.strip()) if email else [])
         else:
             email_and_ips[id] = {
                 'subnets': {ip},
-                'emails': re.split(r'[ ,]+', email.strip()) if email else []
+                'emails': set(re.split(r'[ ,]+', email.strip()) if email else [])
             }
 
     for id, full_name, email, ip in results_gomel:
         if id in email_and_ips.keys():
             email_and_ips[id]['subnets'].update({ip})
             if email:
-                email_and_ips[id]['emails'].extend(re.split(r'[ ,]+', email.strip()) if email else [])
+                email_and_ips[id]['emails'].update(re.split(r'[ ,]+', email.strip()) if email else [])
         else:
             email_and_ips[id] = {
                 'subnets': {ip},
-                'emails': re.split(r'[ ,]+', email.strip()) if email else []
+                'emails': set(re.split(r'[ ,]+', email.strip()) if email else [])
             }
 
     cursor_minsk.close()

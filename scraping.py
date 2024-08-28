@@ -21,8 +21,8 @@ def check_ip_in_subnets(ip, subnets):
 
 def scraping_users():
 
-    unzipping_file('details.zip')
-    unzipping_file('event_list.zip')
+    #unzipping_file('details.zip')
+    #unzipping_file('event_list.zip')
 
     with open("event_list/event_list.txt") as f:
         templates = json.load(f)
@@ -35,6 +35,7 @@ def scraping_users():
 
     for event in templates['events']:
         for id in separated_users:
+            separated_users[id]['emails'] = list(separated_users[id]['emails'])
             user_ips = set()
             if not 'events' in separated_users[id]:
                 separated_users[id]['events'] = []
