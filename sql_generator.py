@@ -1,7 +1,4 @@
-import os
-
-
-def form_sql_query_minsk(ip_addresses):
+def generate_sql_query_minsk(ip_addresses):
 
     ipv4_addresses = [ip for ip in ip_addresses if ':' not in ip]
     ipv6_addresses = [ip for ip in ip_addresses if ':' in ip]
@@ -49,7 +46,7 @@ def form_sql_query_minsk(ip_addresses):
     return sql_query
 
 
-def form_sql_query_gomel(ip_addresses):
+def generate_sql_query_gomel(ip_addresses):
     ip_conditions = " OR ".join([f"INET_ATON('{ip}') & ig.mask = ig.ip" for ip in ip_addresses])
 
     sql_query = f"""
