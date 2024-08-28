@@ -1,10 +1,10 @@
 def generate_sql_query_minsk(ip_addresses):
-
     ipv4_addresses = [ip for ip in ip_addresses if ':' not in ip]
     ipv6_addresses = [ip for ip in ip_addresses if ':' in ip]
 
     ipv4_list = ', '.join([f"INET_ATON('{ip}') & ig.mask" for ip in ipv4_addresses])
-    ipv6_list = ', '.join([f"HEX(inet6_mask(UNHEX(HEX(INET6_ATON('{ip}'))), UNHEX(HEX(INET6_ATON(inet_ntoa_ipv6(ig.mask, ig.mask_ext))))))" for ip in ipv6_addresses])
+    ipv6_list = ', '.join([f"HEX(inet6_mask(UNHEX(HEX(INET6_ATON('{ip}'))), UNHEX(HEX(INET6_ATON(inet_ntoa_ipv6("
+                           f"ig.mask, ig.mask_ext))))))" for ip in ipv6_addresses])
     ipv6_check = ''
     if ipv6_addresses:
         ipv6_check = f"""OR  HEX(INET6_ATON(inet_ntoa_ipv6(ig.ip, ig.ip_ext)))

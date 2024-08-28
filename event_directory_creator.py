@@ -1,8 +1,7 @@
 import json
-import sys
 import os
 import pandas as pd
-from colorama import init, Fore, Style
+from colorama import Fore, Style
 ERROR_string = Fore.RED + "***ERROR***" + Style.RESET_ALL
 WARNING_string = Fore.YELLOW + "***WARNING***" + Style.RESET_ALL
 
@@ -59,35 +58,22 @@ def process_event(user_id, event):
     original_df = pd.read_csv(f'details/{event["details"]}', encoding='utf-8-sig', delimiter=';')
     result_df = pd.DataFrame()
     try:
-        filtered_df = filter_dataframe_by_ip(original_df, event['ips'])
-        check_missing_ips(filtered_df, event)
+        filtered_df = original_df[original_df['ip'].isin(event['ips'])]
+        check_missing_ips(filtered_df, event, user_id)
         result_df = pd.concat([result_df, filtered_df])
         save_dataframe_to_csv(result_df, user_id, event['details'])
     except KeyError:
         handle_missing_ip_column(original_df, event, user_id, result_df)
 
 
-def filter_dataframe_by_ip(df, ips):
-    """
-    Filter a DataFrame based on a list of IP addresses.
-
-    Parameters:
-    df (DataFrame): The original DataFrame.
-    ips (list): List of IP addresses to filter by.
-
-    Returns:
-    DataFrame: The filtered DataFrame.
-    """
-    return df[df['ip'].isin(ips)]
-
-
-def check_missing_ips(filtered_df, event):
+def check_missing_ips(filtered_df, event, user_id):
     """
     Check if any IP addresses are missing in the filtered DataFrame.
 
     Parameters:
     filtered_df (DataFrame): The filtered DataFrame.
     event (dict): Dictionary containing event details and IP addresses.
+    user_id (str):
     """
     if set(filtered_df['ip'].unique()) != set(event['ips']):
         print(WARNING_string + f"В файле {Style.BRIGHT}{event['details']}{Style.RESET_ALL} не найдены все "
@@ -118,13 +104,15 @@ def handle_missing_ip_column(original_df, event, user_id, result_df):
     result_df (DataFrame): The result DataFrame to concatenate filtered data to.
     """
     print(WARNING_string + f"В файле {Style.BRIGHT}{event['details']}{Style.RESET_ALL} не найдена колонка "
-                           f"\033[3mip\033[0m. Поверить запись в директории пользователя {Style.BRIGHT}{user_id}{Style.RESET_ALL}.")
+                           f"\033[3mip\033[0m. Поверить запись в директории пользователя {Style.BRIGHT}{user_id}"
+                           f"{Style.RESET_ALL}.")
     filtered_df = original_df[original_df.apply(
         lambda row: row.astype(str).apply(lambda x: any(text in x for text in event['ips'])).any(),
         axis=1)]
     if filtered_df.empty:
         print(ERROR_string + f"Среди данных в {Style.BRIGHT}{event['details']}{Style.RESET_ALL} не "
-                             f"найдены совпадения адресов из event. Пользователь {Style.BRIGHT}{user_id}{Style.RESET_ALL}.")
+                             f"найдены совпадения адресов из event. Пользователь {Style.BRIGHT}{user_id}"
+                             f"{Style.RESET_ALL}.")
     result_df = pd.concat([result_df, filtered_df])
     save_dataframe_to_csv(result_df, user_id, event['details'])
 
