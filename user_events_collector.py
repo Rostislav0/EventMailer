@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 from sql_generator import generate_sql_query_minsk, generate_sql_query_gomel
 load_dotenv()
 
-user = os.getenv('USER')
-password = os.getenv("PASSWORD")
+user = os.getenv('USER_DB')
+password = os.getenv("PASSWORD_DB")
 host_minsk = os.getenv("HOST_minsk")
 host_gomel = os.getenv("HOST_gomel")
 db = os.getenv("DB")
