@@ -1,20 +1,10 @@
 import copy
 import json
+import os
 import zipfile
 from user_events_collector import fetch_user_event_data
-from event_directory_creator import create_event_directories
+from event_directory_creator import EventDirCreator
 import ipaddress
-
-
-def unzipping_file(zip_file):
-    """
-    Unzips the given zip file into a directory with the same name as the zip file (without the .zip extension).
-
-    Parameters:
-    zip_file (str): The path to the zip file to be unzipped.
-    """
-    with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-        zip_ref.extractall(f'./{zip_file.replace('.zip', '')}')
 
 
 def check_ip_in_subnets(ip, subnets):
@@ -96,21 +86,16 @@ def process_user_events(events, separated_users):
                 separated_users[id]['events'].append(temp_event)
 
 
-def main():
-    """
-    Main function to execute the event processing workflow.
-    """
-    unzipping_file('details.zip')
-    unzipping_file('event_list.zip')
+def manage_user_event(date_time):
 
-    templates = load_event_templates("event_list/event_list.txt")
+    os.makedirs(f"./results", exist_ok=True)
+    os.makedirs(f"./results/{date_time}", exist_ok=True)
+    path_to_result_dir = f"./results/{date_time}"
+    path_to_original_dir = f"./original_data/{date_time}"
+    templates = load_event_templates(f"original_data/{date_time}/event_list/event_list.txt")
 
     all_ips = collect_all_ips(templates['events'])
     separated_users = fetch_user_event_data(all_ips)
 
     process_user_events(templates['events'], separated_users)
-    create_event_directories(separated_users)
-
-
-if __name__ == "__main__":
-    main()
+    EventDirCreator(path_to_result_dir, path_to_original_dir, separated_users).create_event_directories()
