@@ -24,7 +24,6 @@ smtp_server = os.getenv("SMTP_SERVER")
 port = int(os.getenv("SMTP_PORT"))
 email_sender = os.getenv("EMAIL_SENDER")
 password_sender = os.getenv("PASSWORD_EMAIL_SENDER")
-email_recipients = ['test@iptel.by']
 password_recipient = os.getenv("PASSWORD_EMAIL_RECIPIENT")
 email_cert = os.getenv("EMAIL_CERT")
 password_cert = os.getenv("PASSWORD_EMAIL_CERT")
@@ -39,7 +38,7 @@ def files_proccesor(path_to_results, body, subject):
             email_recipients = json.load(f)
 
         send_emails(body, subject, email_recipients, file_names, path_to_user)
-        return file_names
+    return
 
 def send_emails(body, subject, email_recipients, file_names, path_to_user):
     message_to_client = MIMEMultipart()
@@ -107,21 +106,21 @@ def process_new_email():
         if result is None:
             try:
 
-                process_attachments(msg, email_date)
-                manage_user_event(email_date)
+                #process_attachments(msg, email_date)
+                #manage_user_event(email_date)
 
-                #files_proccesor(path_to_results=f"results/{email_date}", body=body, subject=subject)
+                files_proccesor(path_to_results=f"results/{email_date}", body=body, subject=subject)
                 cursor.execute("INSERT INTO emails (email_date, status) VALUES (?, ?)", (email_date_for_db, 1))
                 conn.commit()
                 print("Новое письмо успешно обработано")
-                shutil.rmtree(f"original_data/{email_date}")
+                # shutil.rmtree(f"results/{email_date}")
             except Exception as error:
-                cursor.execute("INSERT INTO emails (email_date, status) VALUES (?, ?)", (email_date_for_db, 0))
                 print(f"Новое письмо обработано c ошибками:\n{error}")
+                cursor.execute("INSERT INTO emails (email_date, status) VALUES (?, ?)", (email_date_for_db, 0))
+
+
         else:
             print("Письмо уже обработано")
-
-
 
     except Exception as e:
         print(f"An error occurred during processing: {e}")
