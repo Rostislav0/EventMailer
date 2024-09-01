@@ -23,6 +23,7 @@ vendor/
 *.userosscache
 *.sln.docstates
 
+problem_users
 results
 details
 event_list
