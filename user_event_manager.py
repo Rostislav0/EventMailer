@@ -88,8 +88,6 @@ def process_user_events(events, separated_users):
 
 def manage_user_event(date_time):
 
-    os.makedirs(f"./results", exist_ok=True)
-    os.makedirs(f"./results/{date_time}", exist_ok=True)
     path_to_result_dir = f"./results/{date_time}"
     path_to_original_dir = f"./original_data/{date_time}"
     templates = load_event_templates(f"original_data/{date_time}/event_list/event_list.txt")

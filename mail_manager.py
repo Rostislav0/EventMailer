@@ -12,6 +12,8 @@ import imaplib
 import email
 from email.header import decode_header
 import sys
+from email.utils import formatdate
+
 from user_event_manager import manage_user_event
 import json
 
@@ -28,17 +30,26 @@ password_recipient = os.getenv("PASSWORD_EMAIL_RECIPIENT")
 email_cert = os.getenv("EMAIL_CERT")
 password_cert = os.getenv("PASSWORD_EMAIL_CERT")
 
-def files_proccesor(path_to_results, body, subject):
+def files_proccesor(path_to_results, path_to_problem_users, body, subject):
+    users_without_email_addresses = []
 
     for user_id in os.listdir(path_to_results):
-        file_names = os.listdir(f"{path_to_results}/{user_id}")
-        file_names.remove('email.json')
         path_to_user = f"{path_to_results}/{user_id}"
         with open(f"{path_to_user}/email.json") as f:
             email_recipients = json.load(f)
 
+        print(email_recipients)
+        if not email_recipients:
+            users_without_email_addresses.append(user_id)
+            shutil.copytree(path_to_user, f"{path_to_problem_users}/{user_id}")
+            continue
+        file_names = os.listdir(f"{path_to_results}/{user_id}")
+        file_names.remove('email.json')
+
+
+
         send_emails(body, subject, email_recipients, file_names, path_to_user)
-    return
+    return users_without_email_addresses
 
 def send_emails(body, subject, email_recipients, file_names, path_to_user):
     message_to_client = MIMEMultipart()
@@ -46,6 +57,7 @@ def send_emails(body, subject, email_recipients, file_names, path_to_user):
     message_to_client['Subject'] = subject
     message_to_client['From'] = email_sender
     message_to_client['To'] = ", ".join(email_recipients)
+    message_to_client['Date'] = formatdate(localtime=True)
 
     message_to_client.attach(MIMEText(body, "html"))
     filenames = file_names
@@ -74,7 +86,7 @@ def process_new_email():
 
         mail.login(email_cert, password_cert)
 
-        mail.select("INBOX/exchange")
+        mail.select("INBOX")
 
         status, messages = mail.search(None, "ALL")
         message_numbers = messages[0].split()
@@ -106,14 +118,20 @@ def process_new_email():
         if result is None:
             try:
 
+                path_to_results = f"./results/{email_date}"
+                path_to_problem_users = f"./problem_users/{email_date}"
+                os.makedirs(path_to_results, exist_ok=True)
+                os.makedirs(path_to_problem_users, exist_ok=True)
+
                 #process_attachments(msg, email_date)
                 #manage_user_event(email_date)
 
-                files_proccesor(path_to_results=f"results/{email_date}", body=body, subject=subject)
+                files_proccesor(path_to_results=path_to_results, path_to_problem_users=path_to_problem_users, body=body,
+                                subject=subject)
+                shutil.rmtree(f"original_data/{email_date}")
                 cursor.execute("INSERT INTO emails (email_date, status) VALUES (?, ?)", (email_date_for_db, 1))
                 conn.commit()
                 print("Новое письмо успешно обработано")
-                # shutil.rmtree(f"results/{email_date}")
             except Exception as error:
                 print(f"Новое письмо обработано c ошибками:\n{error}")
                 cursor.execute("INSERT INTO emails (email_date, status) VALUES (?, ?)", (email_date_for_db, 0))
