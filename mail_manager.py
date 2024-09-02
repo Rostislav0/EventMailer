@@ -26,11 +26,9 @@ smtp_server = os.getenv("SMTP_SERVER")
 port = int(os.getenv("SMTP_PORT"))
 email_sender = os.getenv("EMAIL_SENDER")
 password_sender = os.getenv("PASSWORD_EMAIL_SENDER")
-password_recipient = os.getenv("PASSWORD_EMAIL_RECIPIENT")
-email_cert = os.getenv("EMAIL_CERT")
-password_cert = os.getenv("PASSWORD_EMAIL_CERT")
 
-def files_proccesor(path_to_results, path_to_problem_users, body, subject):
+
+def files_processor(path_to_results, path_to_problem_users, body, subject):
     users_without_email_addresses = []
 
     for user_id in os.listdir(path_to_results):
@@ -38,18 +36,17 @@ def files_proccesor(path_to_results, path_to_problem_users, body, subject):
         with open(f"{path_to_user}/email.json") as f:
             email_recipients = json.load(f)
 
-        print(email_recipients)
         if not email_recipients:
+            os.makedirs(path_to_problem_users, exist_ok=True)
             users_without_email_addresses.append(user_id)
             shutil.copytree(path_to_user, f"{path_to_problem_users}/{user_id}")
             continue
         file_names = os.listdir(f"{path_to_results}/{user_id}")
         file_names.remove('email.json')
 
-
-
         send_emails(body, subject, email_recipients, file_names, path_to_user)
     return users_without_email_addresses
+
 
 def send_emails(body, subject, email_recipients, file_names, path_to_user):
     message_to_client = MIMEMultipart()
@@ -71,10 +68,10 @@ def send_emails(body, subject, email_recipients, file_names, path_to_user):
             message_to_client.attach(part)
 
     try:
-        with smtplib.SMTP_SSL(smtp_server, 465) as server:
+        with smtplib.SMTP_SSL(smtp_server, port) as server:
             server.login(email_sender, password_sender)
             server.sendmail(email_sender, email_recipients, message_to_client.as_string())
-            print("Email sent successfully.")
+        print("Email sent successfully.")
     except Exception as e:
         print(f"An error occurred while sending email: {e}")
 
@@ -84,7 +81,7 @@ def process_new_email():
     try:
         mail = imaplib.IMAP4_SSL(smtp_server)
 
-        mail.login(email_cert, password_cert)
+        mail.login(email_sender, password_sender)
 
         mail.select("INBOX")
 
@@ -102,7 +99,7 @@ def process_new_email():
                     break
         else:
             body = msg.get_payload(decode=True).decode()
-
+        mail.logout()
         date_tuple = email.utils.parsedate_tz(msg["Date"])
         local_date = datetime.fromtimestamp(email.utils.mktime_tz(date_tuple))
 
@@ -121,21 +118,22 @@ def process_new_email():
                 path_to_results = f"./results/{email_date}"
                 path_to_problem_users = f"./problem_users/{email_date}"
                 os.makedirs(path_to_results, exist_ok=True)
-                os.makedirs(path_to_problem_users, exist_ok=True)
+
 
                 #process_attachments(msg, email_date)
                 #manage_user_event(email_date)
 
-                files_proccesor(path_to_results=path_to_results, path_to_problem_users=path_to_problem_users, body=body,
-                                subject=subject)
-                shutil.rmtree(f"original_data/{email_date}")
-                cursor.execute("INSERT INTO emails (email_date, status) VALUES (?, ?)", (email_date_for_db, 1))
+                users_without_email_addresses = files_processor(path_to_results=path_to_results,
+                                                                path_to_problem_users=path_to_problem_users, body=body,
+                                                                subject=subject)
+                shutil.rmtree(f"original_data/{email_date}", ignore_errors=True)
+                cursor.execute("INSERT INTO emails (email_date, status, no_mails) VALUES (?, ?, ?)",
+                               (email_date_for_db, 1, len(users_without_email_addresses)))
                 conn.commit()
                 print("Новое письмо успешно обработано")
             except Exception as error:
                 print(f"Новое письмо обработано c ошибками:\n{error}")
                 cursor.execute("INSERT INTO emails (email_date, status) VALUES (?, ?)", (email_date_for_db, 0))
-
 
         else:
             print("Письмо уже обработано")
@@ -144,9 +142,6 @@ def process_new_email():
         print(f"An error occurred during processing: {e}")
     finally:
         conn.close()
-        mail.logout()
-
-
 
 
 def process_attachments(msg, date_time):
@@ -161,7 +156,6 @@ def process_attachments(msg, date_time):
                 with zipfile.ZipFile(f"original_data/{date_time}/" + new_filename + ".zip", 'r') as zip_file:
                     zip_file.extractall(f"original_data/{date_time}/" + new_filename)
                 os.remove(f"original_data/{date_time}/" + new_filename + ".zip")
-
 
 
 process_new_email()
