@@ -14,7 +14,8 @@ class EventDirCreator():
         self.results = results
         self.path_to_original_dir = path_to_original_dir
 
-    def zip_files_exclude_email(self, path):
+    @staticmethod
+    def zip_files_exclude_email(path):
         with zipfile.ZipFile(f"{path}/events.zip", 'w', zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(path):
                 for file in files:
@@ -106,7 +107,7 @@ class EventDirCreator():
         user_id (str): The ID of the user.
         filename (str): The name of the file to save the DataFrame to.
         """
-        df.to_csv(f"{self.path_to_result_dir}/{user_id}/{filename}", index=False, encoding='utf-8-sig', sep=',')
+        df.to_csv(f"{self.path_to_result_dir}/{user_id}/{filename}", index=False, encoding='utf-8-sig', sep=';')
 
     def handle_missing_ip_column(self, original_df, event, user_id, result_df):
         """
