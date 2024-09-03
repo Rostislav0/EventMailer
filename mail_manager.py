@@ -53,7 +53,7 @@ def files_processor(path_to_results, path_to_problem_users, body, subject):
     return users_without_email_addresses
 
 
-def send_status_email(subject, id_status, path_to_problem_users='', users_without_email_addresses='', error=''):
+def send_status_email(id_status, subject='',path_to_problem_users='', users_without_email_addresses='', error=''):
     statuses = {0: f'Ошибка в парсинге письма: {error}', 1: f'Письмо успешно обработано',
                 2: f'Письмо уже обработано', 3: f'Ошибка в получении архивов из письма: {error}',
                 4: f'Ошибка в обработке данных пользователей: {error}', 5: f'Ошибка в отправке писем: {error}'}
@@ -156,6 +156,7 @@ def process_emails(date='', account_ids=None):
 
 
 def process_a_email(mail, msg, account_ids=None):
+    global conn
     try:
         """if msg.is_multipart():
             for part in msg.walk():
@@ -224,7 +225,7 @@ def process_a_email(mail, msg, account_ids=None):
             send_status_email(subject=subject, id_status=2, path_to_problem_users=path_to_problem_users)
     except Exception as error:
         # print(f"Ошибка в парсинге письма: {e}")
-        send_status_email(subject=subject, id_status=0, error=error)
+        send_status_email(id_status=0, error=error)
     finally:
         conn.close()
 
