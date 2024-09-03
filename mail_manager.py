@@ -141,7 +141,7 @@ def process_emails(date='', account_ids=None):
                 subject_valid = decode_mime_header(msg['Subject'])
 
                 if search_subject in subject_valid:
-                    process_a_email(mail, msg, account_ids)
+                    process_a_email(mail, msg, account_ids, check_db=0)
         else:  # Get last message without filters
             status, messages = mail.search(None, "ALL")
             message_numbers = messages[0].split()
@@ -155,16 +155,16 @@ def process_emails(date='', account_ids=None):
         print(f'Ошибка в получении писем: {error}')
 
 
-def process_a_email(mail, msg, account_ids=None):
+def process_a_email(mail, msg, account_ids=None, check_db=1):
     global conn
     try:
-        """if msg.is_multipart():
+        if msg.is_multipart():
             for part in msg.walk():
                 if part.get_content_type() == "text/html":
                     body = part.get_payload(decode=True).decode()
                     break
         else:
-            body = msg.get_payload(decode=True).decode()"""
+            body = msg.get_payload(decode=True).decode()
         mail.logout()
         date_tuple = email.utils.parsedate_tz(msg["Date"])
         local_date = datetime.fromtimestamp(email.utils.mktime_tz(date_tuple))
@@ -179,7 +179,7 @@ def process_a_email(mail, msg, account_ids=None):
         result = cursor.fetchone()
         path_to_results = f"./results/{email_date}"
         path_to_problem_users = f"./problem_users/{email_date}"
-        if result is None:
+        if (result is None) or check_db == 0:
 
             os.makedirs(path_to_results, exist_ok=True)
 
@@ -244,4 +244,4 @@ def process_attachments(msg, date_time):
                 os.remove(f"original_data/{date_time}/" + new_filename + ".zip")
 
 
-process_emails()  # date="30.08.2024", account_ids=[4555]
+process_emails(date="30.08.2024", account_ids=[4555])  # date="30.08.2024", account_ids=[4555]
