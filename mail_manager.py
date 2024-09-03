@@ -22,8 +22,9 @@ load_dotenv()
 smtp_server = os.getenv("SMTP_SERVER")
 port = int(os.getenv("SMTP_PORT"))
 email_sender = os.getenv("EMAIL_SENDER")
-password_sender = os.getenv("PASSWORD_EMAIL_SENDER")
-email_recipient = os.getenv("EMAIL_RECIPIENT")
+emailData = os.getenv("EMAIL_DATA")
+password_emailData = os.getenv("PASSWORD_EMAIL_DATA")
+email_recipient_for_status_email = os.getenv("EMAIL_RECIPIENT")
 
 
 def decode_mime_header(header):
@@ -53,16 +54,17 @@ def files_processor(path_to_results, path_to_problem_users, body, subject):
     return users_without_email_addresses
 
 
-def send_status_email(id_status, subject='',path_to_problem_users='', users_without_email_addresses='', error=''):
+def send_status_email(id_status, subject='', path_to_problem_users='', users_without_email_addresses='', error=''):
     statuses = {0: f'Ошибка в парсинге письма: {error}', 1: f'Письмо успешно обработано',
                 2: f'Письмо уже обработано', 3: f'Ошибка в получении архивов из письма: {error}',
-                4: f'Ошибка в обработке данных пользователей: {error}', 5: f'Ошибка в отправке писем: {error}'}
+                4: f'Ошибка в обработке данных пользователей: {error}', 5: f'Ошибка в отправке писем: {error}',
+                6: f'Неверное название последнего письма'}
 
     status_message = MIMEMultipart()
 
     status_message['Subject'] = subject if subject else "Невозможно обработать письмо!"
     status_message['From'] = email_sender
-    status_message['To'] = email_recipient
+    status_message['To'] = email_recipient_for_status_email
     status_message['Date'] = formatdate(localtime=True)
     body = f"""{f" - Количество пользователей без адреса: {len(users_without_email_addresses)}.\n"
     f"Список account id: {', '.join(users_without_email_addresses)}" if users_without_email_addresses
@@ -84,8 +86,8 @@ def send_status_email(id_status, subject='',path_to_problem_users='', users_with
 
     try:
         with smtplib.SMTP_SSL(smtp_server, port) as server:
-            server.login(email_sender, password_sender)
-            server.sendmail(email_sender, email_recipient, status_message.as_string())
+            server.login(emailData, password_emailData)
+            server.sendmail(email_sender, email_recipient_for_status_email, status_message.as_string())
         print("Status email sent successfully.")
     except Exception as e:
         print(f"An error occurred while sending status email: {e}")
@@ -114,7 +116,7 @@ def send_emails(body, subject, email_recipients, file_names, path_to_user):
 
     try:
         with smtplib.SMTP_SSL(smtp_server, port) as server:
-            server.login(email_sender, password_sender)
+            server.login(emailData, password_emailData)
             server.sendmail(email_sender, email_recipients, message_to_client.as_string())
         print("Email sent successfully.")
     except Exception as e:
@@ -125,16 +127,16 @@ def process_emails(date='', account_ids=None):
     try:
         mail = imaplib.IMAP4_SSL(smtp_server)
 
-        mail.login(email_sender, password_sender)
+        mail.login(emailData, password_emailData)
 
         mail.select("INBOX")
+        search_subject = "Оповещение о событиях безопасности"
         if date:
-            date_object = datetime.strptime(date, "%d.%m.%Y")  # Преобразуем строку в объект datetime
+            date_object = datetime.strptime(date, "%d.%m.%Y")
             formatted_date = date_object.strftime("%d-%b-%Y")
             search_criteria = f'(ON "{formatted_date}")'
             status, messages = mail.search(None, search_criteria)
             email_ids = messages[0].split()
-            search_subject = "Оповещение о событиях безопасности"
             for e_id in email_ids:
                 status, msg_data = mail.fetch(e_id, '(RFC822)')
                 msg = email.message_from_bytes(msg_data[0][1])
@@ -142,6 +144,8 @@ def process_emails(date='', account_ids=None):
 
                 if search_subject in subject_valid:
                     process_a_email(mail, msg, account_ids, check_db=0)
+                else:
+                    send_status_email(id_status=6)
         else:  # Get last message without filters
             status, messages = mail.search(None, "ALL")
             message_numbers = messages[0].split()
@@ -150,7 +154,10 @@ def process_emails(date='', account_ids=None):
             status, msg_data = mail.fetch(email_id, "(RFC822)")
 
             msg = email.message_from_bytes(msg_data[0][1])
-            process_a_email(mail, msg)
+            subject_valid = decode_mime_header(msg['Subject'])
+
+            if search_subject in subject_valid:
+                process_a_email(mail, msg, account_ids, check_db=1)
     except Exception as error:
         print(f'Ошибка в получении писем: {error}')
 
@@ -222,7 +229,7 @@ def process_a_email(mail, msg, account_ids=None, check_db=1):
 
         else:
             # print("Письмо уже обработано")
-            send_status_email(subject=subject, id_status=2, path_to_problem_users=path_to_problem_users)
+            send_status_email(subject=subject, id_status=2)
     except Exception as error:
         # print(f"Ошибка в парсинге письма: {e}")
         send_status_email(id_status=0, error=error)
