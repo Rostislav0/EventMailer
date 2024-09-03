@@ -8,6 +8,7 @@ from email import encoders
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
+from email.header import decode_header
 import imaplib
 import email
 from email.utils import formatdate
@@ -24,6 +25,13 @@ email_sender = os.getenv("EMAIL_SENDER")
 password_sender = os.getenv("PASSWORD_EMAIL_SENDER")
 email_recipient = os.getenv("EMAIL_RECIPIENT")
 
+
+def decode_mime_header(header):
+    decoded_header = decode_header(header)
+    return ''.join(
+        str(part.decode(encoding if encoding else 'utf-8')) if isinstance(part, bytes) else part
+        for part, encoding in decoded_header
+    )
 
 def files_processor(path_to_results, path_to_problem_users, body, subject):
     users_without_email_addresses = []
@@ -113,33 +121,49 @@ def send_emails(body, subject, email_recipients, file_names, path_to_user):
         print(f"An error occurred while sending email: {e}")
 
 
-def process_new_email():
-    global mail, conn, subject, users_without_email_addresses, path_to_problem_users
+def process_emails(date='', account_ids=None):
     try:
         mail = imaplib.IMAP4_SSL(smtp_server)
 
         mail.login(email_sender, password_sender)
 
         mail.select("INBOX")
+        if date:
+            date_object = datetime.strptime(date, "%d.%m.%Y")  # Преобразуем строку в объект datetime
+            formatted_date = date_object.strftime("%d-%b-%Y")
+            search_criteria = f'(ON "{formatted_date}")'
+            status, messages = mail.search(None, search_criteria)
+            email_ids = messages[0].split()
+            search_subject = "Оповещение о событиях безопасности"
+            for e_id in email_ids:
+                status, msg_data = mail.fetch(e_id, '(RFC822)')
+                msg = email.message_from_bytes(msg_data[0][1])
+                subject_valid = decode_mime_header(msg['Subject'])
 
-        status, messages = mail.search(None, "ALL")
+                if search_subject in subject_valid:
+                    process_a_email(mail, msg, account_ids)
+        else:  # Get last message without filters
+            status, messages = mail.search(None, "ALL")
+            message_numbers = messages[0].split()
+            email_id = message_numbers[-1]
 
-        message_numbers = messages[0].split()
-        latest_email_id = message_numbers[-6]
+            status, msg_data = mail.fetch(email_id, "(RFC822)")
 
-        status, msg_data = mail.fetch(latest_email_id, "(RFC822)")
-        print(msg_data)
+            msg = email.message_from_bytes(msg_data[0][1])
+            process_a_email(mail, msg)
+    except Exception as error:
+        print(f'Ошибка в получении писем: {error}')
 
-        msg = email.message_from_bytes(msg_data[0][1])
-        print(msg)
-        sy
-        if msg.is_multipart():
+
+def process_a_email(mail, msg, account_ids=None):
+    try:
+        """if msg.is_multipart():
             for part in msg.walk():
                 if part.get_content_type() == "text/html":
                     body = part.get_payload(decode=True).decode()
                     break
         else:
-            body = msg.get_payload(decode=True).decode()
+            body = msg.get_payload(decode=True).decode()"""
         mail.logout()
         date_tuple = email.utils.parsedate_tz(msg["Date"])
         local_date = datetime.fromtimestamp(email.utils.mktime_tz(date_tuple))
@@ -166,7 +190,7 @@ def process_new_email():
                 send_status_email(subject=subject, id_status=3, path_to_problem_users=path_to_problem_users,
                                   error=error)
             try:
-                manage_user_event(email_date)
+                manage_user_event(email_date, account_ids)
             except Exception as error:
                 # print(f"Ошибка в обработке данных пользователей:\n{error}")
                 cursor.execute("INSERT INTO emails (email_date, status) VALUES (?, ?)", (email_date_for_db, 4))
@@ -189,7 +213,7 @@ def process_new_email():
 
             shutil.rmtree(f"original_data/{email_date}", ignore_errors=True)
 
-            #shutil.rmtree(path_to_results, ignore_errors=True)
+            shutil.rmtree(path_to_results, ignore_errors=True)
             # print("Новое письмо успешно обработано")
             send_status_email(subject=subject, users_without_email_addresses=users_without_email_addresses,
                               id_status=1, path_to_problem_users=path_to_problem_users)
@@ -219,4 +243,4 @@ def process_attachments(msg, date_time):
                 os.remove(f"original_data/{date_time}/" + new_filename + ".zip")
 
 
-process_new_email()
+process_emails()  # date="30.08.2024", account_ids=[4555]

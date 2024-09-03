@@ -1,7 +1,5 @@
 import copy
 import json
-import os
-import zipfile
 from user_events_collector import fetch_user_event_data
 from event_directory_creator import EventDirCreator
 import ipaddress
@@ -86,7 +84,7 @@ def process_user_events(events, separated_users):
                 separated_users[id]['events'].append(temp_event)
 
 
-def manage_user_event(date_time):
+def manage_user_event(date_time, account_ids):
 
     path_to_result_dir = f"./results/{date_time}"
     path_to_original_dir = f"./original_data/{date_time}"
@@ -94,6 +92,10 @@ def manage_user_event(date_time):
 
     all_ips = collect_all_ips(templates['events'])
     separated_users = fetch_user_event_data(all_ips)
+    if account_ids:
+        for key in list(separated_users.keys()):
+            if key not in account_ids:
+                separated_users.pop(key)
 
     process_user_events(templates['events'], separated_users)
     EventDirCreator(path_to_result_dir, path_to_original_dir, separated_users).create_event_directories()
