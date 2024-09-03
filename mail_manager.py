@@ -66,11 +66,13 @@ def send_status_email(id_status, subject='', path_to_problem_users='', users_wit
     status_message['From'] = email_sender
     status_message['To'] = email_recipient_for_status_email
     status_message['Date'] = formatdate(localtime=True)
-    body = f"""{f" - Количество пользователей без адреса: {len(users_without_email_addresses)}.\n"
-    f"Список account id: {', '.join(users_without_email_addresses)}" if users_without_email_addresses
-                                                                    else ''}
-Письмо обработано с результатом: "{statuses[id_status]}"    
-                """
+    list_account_ids = f"{(f" - Количество пользователей без адреса: {len(users_without_email_addresses)}.\n"
+                           f"Список account id: {', '.join(users_without_email_addresses)}") if users_without_email_addresses else ''}"
+    result_status_email = f'Письмо обработано с результатом: "{statuses[id_status]}"'
+    body = f"""
+    {list_account_ids}
+    {result_status_email}
+"""
     status_message.attach(MIMEText(body, 'plain'))
 
     if id_status == 1 and os.path.isdir(path_to_problem_users):
